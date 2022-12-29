@@ -1,0 +1,3 @@
+name: eks
+description: A minimal AWS Go Pulumi program
+runtime: go
