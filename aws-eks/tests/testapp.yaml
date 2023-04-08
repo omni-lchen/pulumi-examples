@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rbac-app
+  namespace: app
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+   name: rbac-app
+roleRef:
+   apiGroup: rbac.authorization.k8s.io
+   kind: ClusterRole
+   name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: rbac-app
+  namespace: app
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ebs-test
+  namespace: app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ebs-sc
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/tls-skip-verify: "true"
+    vault.hashicorp.com/auth-path: "auth/dev-cluster"
+    vault.hashicorp.com/role: "dev-app"
+    vault.hashicorp.com/agent-inject-secret-app-dbconfig: "dev/app/dbconfig"
+  labels:
+    run: testapp
+  name: testapp
+  namespace: app
+spec:
+  serviceAccountName: rbac-app
+  containers:
+  - args:
+    - sleep
+    - "86400"
+    image: alpine/curl
+    name: app
+    resources: {}
+    volumeMounts:
+      - name: pv-volume
+        mountPath: /persistentvolumes
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  volumes:
+    - name: pv-volume
+      persistentVolumeClaim:
+        claimName: ebs-test

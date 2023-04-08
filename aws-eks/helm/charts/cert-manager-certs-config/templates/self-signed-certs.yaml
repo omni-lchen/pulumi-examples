@@ -1,0 +1,65 @@
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+  labels:
+    {{- include "cert-manager-certs-config.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: istio-ingressgateway-tls
+  namespace: istio-system
+  labels:
+    {{- include "cert-manager-certs-config.labels" . | nindent 4 }}
+spec:
+  secretName: istio-ingressgateway-tls
+  commonName: "cluster.local"
+  subject:
+    organizations:
+      - "cluster.local"
+  dnsNames:
+  - "cluster.local"
+  isCA: true
+  privateKey:
+    rotationPolicy: Always
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-tls
+  namespace: vault
+  labels:
+    {{- include "cert-manager-certs-config.labels" . | nindent 4 }}
+spec:
+  secretName: vault-tls
+  commonName: "vault.vault.svc.cluster.local"
+  subject:
+    organizations:
+      - "cluster.local"
+  dnsNames:
+  - "vault"
+  - "vault.vault"
+  - "vault.vault.svc"
+  - "vault.vault.svc.cluster.local"
+  - "localhost"
+  ipAddresses:
+  - "127.0.0.1"
+  isCA: true
+  privateKey:
+    rotationPolicy: Always
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer

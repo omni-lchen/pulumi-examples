@@ -1,0 +1,65 @@
+global:
+  enabled: true
+  # tlsDisable: false
+
+server:
+  serviceAccount:
+    create: false
+    name: vault-sa
+  
+  # extraEnvironmentVars:
+  #   VAULT_CACERT: /vault/tls/ca.crt
+  
+  # volumes:
+  # - name: tls
+  #   secret:
+  #     secretName: vault-tls
+
+  # volumeMounts:
+  # - name: tls
+  #   mountPath: "/vault/tls"
+  #   readOnly: true
+  
+  ha:
+    enabled: true
+    raft:
+      enabled: true
+      config: |
+        ui = true
+
+        listener "tcp" {
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+          # tls_cert_file = "/vault/tls/tls.crt"
+          # tls_key_file  = "/vault/tls/tls.key"
+          # tls_client_ca_file = "/vault/tls/ca.crt"
+        }
+        # storage "consul" {
+        #   path = "vault"
+        #   address = "HOST_IP:8500"
+        # }
+        storage "raft" {
+          path = "/vault/data"
+        }
+
+        service_registration "kubernetes" {}
+
+        # Example configuration for using auto-unseal, using Google Cloud KMS. The
+        # GKMS keys must already exist, and the cluster must have a service account
+        # that is authorized to access GCP KMS.
+        seal "awskms" {
+          region     = "eu-west-1"
+          kms_key_id = "${KMS_KEY_ID}"
+        }
+
+        # Example configuration for enabling Prometheus metrics.
+        # If you are using Prometheus Operator you can enable a ServiceMonitor resource below.
+        # You may wish to enable unauthenticated metrics in the listener block above.
+        #telemetry {
+        #  prometheus_retention_time = "30s",
+        #  disable_hostname = true
+        #}
+
+  dataStorage:
+    size: 1Gi
+    storageClass: ebs-sc

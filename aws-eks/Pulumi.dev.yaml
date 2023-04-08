@@ -1,9 +1,11 @@
 config:
   aws:region: eu-west-1
-  tags:version: "0.1.0"
   tags:author: lchen
-  vpc:cidr-block: "10.0.0.0/16"
-  vpc:subnet-zones: "eu-west-1a,eu-west-1b,eu-west-1c"
-  vpc:private-subnet-ips: "10.0.1.0/24,10.0.2.0/24,10.0.3.0/24"
-  vpc:public-subnet-ips: "10.0.4.0/24,10.0.5.0/24,10.0.6.0/24"
-  
+  tags:version: 0.1.0
+  vpc:cidr-block: 10.0.0.0/16
+  vpc:private-subnet-ips: 10.0.1.0/24,10.0.2.0/24,10.0.3.0/24
+  vpc:public-subnet-ips: 10.0.4.0/24,10.0.5.0/24,10.0.6.0/24
+  vpc:subnet-zones: eu-west-1a,eu-west-1b,eu-west-1c
+  eks:ami-id: "ami-xxx"
+  eks:version: "1.23"
+  karpenter:version: "v0.27.0"

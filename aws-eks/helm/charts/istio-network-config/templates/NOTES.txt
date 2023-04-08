@@ -1,0 +1,2 @@
+1. Get istio certificate, ingress-gateway and virtual services:
+  kubectl -n istio-system get certificate,gw,vs

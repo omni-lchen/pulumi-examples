@@ -1,0 +1,22 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: default-http-backend
+  namespace: istio-system
+  labels:
+    {{- include "istio-network-config.labels" . | nindent 4 }}
+spec:
+  hosts:
+  - '*'
+  gateways:
+  - ingress-gateway
+  http:
+  - match:
+    - ignoreUriCase: true
+      uri:
+        prefix: /healthz
+    route:
+    - destination:
+        host: default-http-backend.app.svc.cluster.local
+        port:
+          number: 8080

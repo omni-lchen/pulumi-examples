@@ -1,0 +1,26 @@
+aws-ebs-csi-driver:
+  version: "2.16.0"
+
+metrics-server:
+  version: "3.8.3"
+
+prometheus:
+  version: "19.6.1"
+
+calico:
+  version: "v3.24.5"
+
+cert-manager:
+  version: "v1.8.0"
+
+istio:
+  version: "1.16.1"
+
+karpenter:
+  version: "v0.27.0"
+
+vault:
+  version: "0.23.0"
+
+default-http-backend:
+  namespace: app

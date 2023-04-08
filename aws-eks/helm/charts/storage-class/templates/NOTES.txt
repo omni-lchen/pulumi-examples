@@ -1,0 +1,2 @@
+1. Get the storage class by running these commands:
+kubectl get sc

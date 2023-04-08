@@ -1,0 +1,167 @@
+# Download helmfile binary from https://github.com/helmfile/helmfile
+# ----------------------------------------------------------------------------------
+#
+# helmfile sync
+# 
+repositories:
+- name: aws-ebs-csi-driver
+  url: https://kubernetes-sigs.github.io/aws-ebs-csi-driver
+- name: metrics-server
+  url: https://kubernetes-sigs.github.io/metrics-server
+- name: prometheus-community
+  url: https://prometheus-community.github.io/helm-charts
+- name: istio
+  url: https://istio-release.storage.googleapis.com/charts
+- name: projectcalico
+  url: https://docs.projectcalico.org/charts
+- name: jetstack
+  url: https://charts.jetstack.io
+- name: open-telemetry
+  url: https://open-telemetry.github.io/opentelemetry-helm-charts
+- name: grafana
+  url: https://grafana.github.io/helm-charts
+- name: hashicorp
+  url: https://helm.releases.hashicorp.com
+
+environments:
+  default:
+    values:
+    - env/default.yaml
+
+releases:
+  - name: karpenter
+    namespace: karpenter
+    chart: oci://public.ecr.aws/karpenter/karpenter
+    version: {{ .Values.karpenter.version }}
+    labels:
+      stack: karpenter
+    values:
+    - manifests/.karpenter-values.yaml
+  - name: aws-ebs-csi-driver
+    namespace: kube-system
+    chart: aws-ebs-csi-driver/aws-ebs-csi-driver
+    version: {{ index .Values "aws-ebs-csi-driver" "version" }}
+    labels:
+      stack: storage
+    set:
+    - name: installation.kubernetesProvider
+      value: EKS
+  - name: storage-class
+    namespace: kube-system
+    chart: charts/storage-class
+    labels:
+      stack: storage
+    needs:
+    - kube-system/aws-ebs-csi-driver
+  - name: metrics-server
+    namespace: kube-system
+    chart: metrics-server/metrics-server
+    version: {{ index .Values "metrics-server" "version" }}
+    labels:
+      stack: monitoring
+  # - name: prometheus
+  #   namespace: monitoring
+  #   chart: prometheus-community/prometheus
+  #   version: {{ .Values.prometheus.version }}
+  #   labels:
+  #     stack: monitoring
+  - name: calico
+    namespace: tigera-operator
+    chart: projectcalico/tigera-operator
+    version: {{ .Values.calico.version }}
+    labels:
+      stack: networking
+    set:
+    - name: installation.kubernetesProvider
+      value: EKS
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: {{ index .Values "cert-manager" "version" }}
+    labels:
+      stack: certs
+    set:
+    - name: prometheus.enabled
+      value: "true"
+    - name: installCRDs
+      value: "true"
+  - name: cert-manager-certs-config
+    namespace: cert-manager
+    chart: charts/cert-manager-certs-config
+    labels:
+      stack: certs
+    needs:
+    - cert-manager/cert-manager
+    - istio-system/istio-base
+  - name: istio-base
+    namespace: istio-system
+    chart: istio/base
+    version: {{ .Values.istio.version }}
+    labels:
+      stack: networking
+  - name: istiod
+    namespace: istio-system
+    chart: istio/istiod
+    version: {{ .Values.istio.version }}
+    labels:
+      stack: networking
+    needs:
+    - istio-system/istio-base
+    set:
+    - name: global.hub
+      value: gcr.io/istio-release
+  - name: istio-ingressgateway
+    namespace: istio-system
+    chart: istio/gateway
+    version: {{ .Values.istio.version }}
+    labels:
+      stack: networking
+    needs:
+    - istio-system/istiod
+    values:
+    - manifests/istio-ingressgateway.yaml
+  - name: istio-network-config
+    namespace: istio-system
+    chart: charts/istio-network-config
+    labels:
+      stack: networking
+    needs:
+    - istio-system/istio-ingressgateway
+    - cert-manager/cert-manager-certs-config
+  - name: default-http-backend
+    namespace: app
+    chart: charts/default-http-backend
+    labels:
+      stack: app
+  # - name: consul
+  #   namespace: consul
+  #   chart: hashicorp/consul
+  #   labels:
+  #     stack: secrets
+  #   needs:
+  #   - kube-system/storage-class
+  #   values:
+  #   - manifests/consul.yaml
+  - name: vault
+    namespace: vault
+    chart: hashicorp/vault
+    version: {{ .Values.vault.version }}
+    labels:
+      stack: secrets
+    needs:
+    - kube-system/storage-class
+    - cert-manager/cert-manager-certs-config
+    # - consul/consul
+    values:
+    - manifests/.vault-values.yaml
+
+helmBinary: /usr/local/bin/helm
+helmDefaults:
+  # wait for k8s resources via --wait. (default false)
+  wait: true
+  # if set and --wait enabled, will wait until all Jobs have been completed before marking the release as successful. It will wait for as long as --timeout (default false, Implemented in Helm3.5)
+  waitForJobs: true
+  # time in seconds to wait for any individual Kubernetes operation (like Jobs for hooks, and waits on pod/pvc/svc/deployment readiness) (default 300)
+  timeout: 600
+  # when using helm 3.2+, automatically create release namespaces if they do not exist (default true)
+  createNamespace: true
